@@ -21,6 +21,7 @@
 #define MARGIN 300
 
 #define BUZZER 10
+#define CLICKER 9
 #define BUTTON 3
 
 volatile uint16_t buf[256];
@@ -28,13 +29,14 @@ volatile unsigned int counter = 0;
 
 const float strings[6] = {E2, A2, D3, G3, B3, E4};
 const char names[6][2] = {"E", "A", "D", "G", "B", "E"};
-int note_idx = 0;
+int note_idx = 3;
 
 void setup(){
   
   Serial.begin(9600);
   
   pinMode(BUZZER, OUTPUT);
+  pinMode(CLICKER, OUTPUT);
   pinMode(BUTTON, INPUT);
     
   //set up continuous sampling of analog pin 0 at 10kHz
@@ -52,12 +54,13 @@ void setup(){
          |  (1 << ADEN) //enable ADC
          |  (1 << ADSC); //start ADC measurements
 
-  // Enable output A, fast PWM
-  TCCR2A = _BV(COM2A1) | _BV(WGM21) | _BV(WGM20);
+  // Enable output A, B, fast PWM
+  TCCR2A = _BV(COM2A1) | _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
   // No PWM prescaler
   TCCR2B = _BV(CS20);
   // Duty cycle
   OCR2A = 127;
+  OCR2B = 127;
   
   //tone(2, note);
 }
@@ -69,8 +72,9 @@ SIGNAL(ADC_vect) {//when new ADC value ready
   float f = strings[note_idx];
   uint8_t sine = sin8(f*counter);
   OCR2A = sine;
-  int idx = counter & 0xff;
-  buf[idx] = val*sine;
+  OCR2B = (val*sine)>>7;
+  //int idx = counter & 0xff;
+  //buf[idx] = val*sine;
   counter++;
 }
 
