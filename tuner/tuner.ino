@@ -1,26 +1,32 @@
+#include "trig8.h"
 #include <limits.h>
 
-#define E4 329.63
-#define B3 246.94
-#define G3 196.00
-#define D3 146.83
-#define A2 110.00
-#define E2 82.41
 #define SEMITONE 1.059463
 #define CENT 1.0005777895
+
 // CPU_F/prescaler/ADC_cycles
-// 160000000/32/13
-#define ADCFREQ 38461.0
+// 160000000/128/13
+#define ADCFREQ 9615.384615384615
+// scales to the range of sin8: 0-255
+#define OMEGA (255/ADCFREQ)
+
+#define E4 (329.63*OMEGA)
+#define B3 (246.94*OMEGA)
+#define G3 (196.00*OMEGA)
+#define D3 (146.83*OMEGA)
+#define A2 (110.00*OMEGA)
+#define E2 (82.41*OMEGA)
+
 // how tuned is tuned? freq/MARGIN
 #define MARGIN 300
 
-#define BUZZER 2
+#define BUZZER 10
 #define BUTTON 3
 
-volatile uint8_t buf[1024];
+volatile uint16_t buf[256];
 volatile unsigned int counter = 0;
 
-const float strings[6] = {E2, A2, D3, G3, B3, E4};
+const float strings[7] = {2*440, E2, A2, D3, G3, B3, E4};
 const char names[6][2] = {"E", "A", "D", "G", "B", "E"};
 int note_idx = 0;
 
@@ -31,7 +37,7 @@ void setup(){
   pinMode(BUZZER, OUTPUT);
   pinMode(BUTTON, INPUT);
     
-  //set up continuous sampling of analog pin 0 at 38.5kHz
+  //set up continuous sampling of analog pin 0 at 10kHz
  
   //clear ADCSRA and ADCSRB registers
   ADCSRA = 0;
@@ -40,69 +46,48 @@ void setup(){
   ADMUX |= (1 << REFS0) //set reference voltage
         |  (1 << ADLAR); //left align the ADC value- so we can read highest 8 bits from ADCH register only
   
-  ADCSRA |= (1 << ADPS2) | (1 << ADPS0) //set ADC clock with 32 prescaler- 16mHz/32=500kHz
+  ADCSRA |= (1 << ADPS2) | (1 << ADPS1)| (1 << ADPS0) //set ADC clock with 128 prescaler- 16mHz/128=125kHz
          |  (1 << ADATE) //enabble auto trigger
          |  (1 << ADIE) //enable interrupts when measurement complete
          |  (1 << ADEN) //enable ADC
          |  (1 << ADSC); //start ADC measurements
+
+  // Enable output A, fast PWM
+  TCCR2A = _BV(COM2A1) | _BV(WGM21) | _BV(WGM20);
+  // No PWM prescaler
+  TCCR2B = _BV(CS20);
+  // Duty cycle
+  OCR2A = 127;
+  // Interrupt on compare register
+  //TIMSK2 |= _BV(TOIE2);
   
   //tone(2, note);
 }
 
-ISR(ADC_vect) {//when new ADC value ready
-  buf[counter] = ADCH;
-  counter = (counter + 1) & 1023;
+SIGNAL(ADC_vect) {//when new ADC value ready
+  //uint16_t val = ADCL;
+  //val |= ADCH << 8;
+  uint16_t val = ADCH;
+  float f = strings[note_idx];
+  uint8_t sine = sin8(f*counter);
+  int idx = counter & 0xff;
+  buf[idx] = val*sine;
+  counter++;
 }
 
-// get frequency between given bounds
-float get_frequency(const float low, const float high) {
-  int best_cycle = 0;
-  int best_difference = INT_MAX;
-  for (int offset = ADCFREQ/high; offset<ADCFREQ/low; offset++) {
-    int difference = 0;
-    for (int i = 0; i<ADCFREQ/low; i++) {
-      difference += max(buf[i], buf[i+offset])-min(buf[i], buf[i+offset]);
-    }
-    if (difference < best_difference) {
-      best_cycle = offset;
-      best_difference = difference;
-    }
-  }
-  return ADCFREQ/best_cycle;
+SIGNAL(TIMER2_OVF_vect) {
+  float f = strings[note_idx];
+  uint8_t sine = sin8(f*counter);
+  OCR2A = sine;
 }
 
 void loop() {
-  float note = strings[note_idx];
-  while (counter != 0);
-  ADCSRA &= ~(1 << ADIE); //disable ADC ISR
-  float fr = get_frequency(note*0.9, note*1.1);
-  float detune = fr-note;
-
-  if (detune > (note/MARGIN)) {
-    tone(BUZZER, note*SEMITONE*SEMITONE);
-    delay(100);
-  } else if (detune < -(note/MARGIN)) {
-    tone(BUZZER, note/SEMITONE/SEMITONE);
-    delay(100);
+  for(int i=0; i<256; i++) {
+    //Serial.println(buf[i]);
+    //Serial.println(TCCR2B, BIN);
   }
-  tone(BUZZER, note);
-  delay(100);
-  noTone(BUZZER);
-
-  if(digitalRead(BUTTON)) {
-    delay(500);
-    note_idx++;
-    if (note_idx == 6) note_idx = 0;
-    
-    for (int i = 0; i<note_idx+1; i++) {
-      tone(BUZZER, strings[i]);
-      delay(200);
-    }
-    noTone(BUZZER);
-  }
-
-  delay(100);
-  
-  ADCSRA |= (1 << ADIE); // reenable ADC ISR
-  Serial.print(fr); Serial.print(" "); Serial.println(detune);
+  float f = strings[note_idx];
+  uint8_t sine = sin8(f*counter);
+  analogWrite(BUZZER, sine); //TODO fast PWM
+  delay(2);
 }
