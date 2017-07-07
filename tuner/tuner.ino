@@ -26,7 +26,7 @@
 volatile uint16_t buf[256];
 volatile unsigned int counter = 0;
 
-const float strings[7] = {2*440, E2, A2, D3, G3, B3, E4};
+const float strings[6] = {E2, A2, D3, G3, B3, E4};
 const char names[6][2] = {"E", "A", "D", "G", "B", "E"};
 int note_idx = 0;
 
@@ -58,8 +58,6 @@ void setup(){
   TCCR2B = _BV(CS20);
   // Duty cycle
   OCR2A = 127;
-  // Interrupt on compare register
-  //TIMSK2 |= _BV(TOIE2);
   
   //tone(2, note);
 }
@@ -70,15 +68,10 @@ SIGNAL(ADC_vect) {//when new ADC value ready
   uint16_t val = ADCH;
   float f = strings[note_idx];
   uint8_t sine = sin8(f*counter);
+  OCR2A = sine;
   int idx = counter & 0xff;
   buf[idx] = val*sine;
   counter++;
-}
-
-SIGNAL(TIMER2_OVF_vect) {
-  float f = strings[note_idx];
-  uint8_t sine = sin8(f*counter);
-  OCR2A = sine;
 }
 
 void loop() {
@@ -86,8 +79,8 @@ void loop() {
     //Serial.println(buf[i]);
     //Serial.println(TCCR2B, BIN);
   }
-  float f = strings[note_idx];
-  uint8_t sine = sin8(f*counter);
-  analogWrite(BUZZER, sine); //TODO fast PWM
+  //float f = strings[note_idx];
+  //uint8_t sine = sin8(f*counter);
+  //analogWrite(BUZZER, sine); //TODO fast PWM
   delay(2);
 }
