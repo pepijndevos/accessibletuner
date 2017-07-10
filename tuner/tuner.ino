@@ -1,4 +1,5 @@
 #include "trig8.h"
+#include "iir.h"
 #include <limits.h>
 
 #define SEMITONE 1.059463
@@ -31,6 +32,27 @@ const float strings[6] = {E2, A2, D3, G3, B3, E4};
 const char names[6][2] = {"E", "A", "D", "G", "B", "E"};
 int note_idx = 3;
 
+
+/**********************************************************/
+// Filter coefficients
+/**********************************************************/
+/* These coefficients will give the response of a low pass filter.
+ * A0 is not defined since it is the downscaling factor.
+ *
+ * Note that the sign is changed on the A*-coefficients, relative to the ones
+ * presented in the appplication note. This is because only additions are used
+ * in the filtering algorithm, while the difference equation requires
+ * subtractions for the feedback-part.
+ */
+#define FB0    2072   //!< First feed-forward coefficient.
+#define FB1   -4143   //!< Second feed-forward coefficient.
+#define FB2    2072   //!< Third feed-forward coefficient.
+#define FA1    130961 //!< Second feedback coefficient.
+#define FA2   -65425 //!< Third feedback coefficient.
+
+// Initialize the filter struct.
+struct IIR_filter lpf = {0,0,0,0, FB0, FB1, FB2, FA1, FA2};
+
 void setup(){
   
   Serial.begin(9600);
@@ -55,36 +77,28 @@ void setup(){
          |  (1 << ADSC); //start ADC measurements
 
   // Enable output A, B, fast PWM
-  TCCR2A = _BV(COM2A1) | _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
+  TCCR2A = _BV(COM2A1) | _BV(WGM21) | _BV(WGM20);
   // No PWM prescaler
   TCCR2B = _BV(CS20);
   // Duty cycle
   OCR2A = 127;
-  OCR2B = 127;
-  
-  //tone(2, note);
 }
 
 SIGNAL(ADC_vect) {//when new ADC value ready
   //uint16_t val = ADCL;
   //val |= ADCH << 8;
-  uint16_t val = ADCH;
+  uint8_t val = ADCH;
   float f = strings[note_idx];
   uint8_t sine = sin8(f*counter);
   OCR2A = sine;
-  OCR2B = (val*sine)>>7;
+  int16_t prod = (val*sine)-0x7fff;
+  int16_t enve = IIR2(&lpf, prod);
+  digitalWrite(CLICKER, enve>0);
   //int idx = counter & 0xff;
   //buf[idx] = val*sine;
   counter++;
 }
 
 void loop() {
-  for(int i=0; i<256; i++) {
-    //Serial.println(buf[i]);
-    //Serial.println(TCCR2B, BIN);
-  }
-  //float f = strings[note_idx];
-  //uint8_t sine = sin8(f*counter);
-  //analogWrite(BUZZER, sine); //TODO fast PWM
-  delay(2);
+    Serial.println("hello");
 }
