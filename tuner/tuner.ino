@@ -18,8 +18,8 @@
 #define A2 (110.00*OMEGA)
 #define E2 (82.41*OMEGA)
 
-#define BUZZER 10
-#define ENVELOPE 9
+#define BUZZER 3
+#define ENVELOPE 11
 #define CLICKER 8
 
 // PORTB
@@ -37,7 +37,7 @@ volatile unsigned long long counter = 0;
 //const float strings[6] = {E2, A2, D3, G3, B3, E4};
 //const char names[6][2] = {"E", "A", "D", "G", "B", "E"};
 //int note_idx = 5;
-volatile float note = D3*CENT*CENT*CENT;
+volatile float note = D3;
 
 void setup(){
   
@@ -87,7 +87,7 @@ SIGNAL(ADC_vect) {//when new ADC value ready
   uint8_t sine = sin8(note*counter);
   //int16_t prod = (val*sine)-0x7fff;
   //int16_t enve = IIR2(&lpf, prod);
-  OCR2A = sine;
+  OCR2B = sine;
   //digitalWrite(CLICKER, enve>0);
   int idx = counter & 0xff;
   buf[idx] = val*sine;
@@ -117,7 +117,7 @@ SIGNAL(PCINT2_vect) {
   static uint8_t old_AB = 0;
 
   old_AB <<= 2; //remember previous state
-  old_AB |= PINK & 0x03; //add current state
+  old_AB |= PIND & 0x03; //add current state
   note *= enc_states[old_AB & 0x0f];
 }
 
@@ -128,7 +128,7 @@ void loop() {
         m = buf[i];
       }
     }
-    OCR2B = m>>8;
+    OCR2A = m>>8;
     digitalWrite(CLICKER, m>0x7fff);
 
     //Serial.println(PINK, BIN);
