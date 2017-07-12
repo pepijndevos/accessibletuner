@@ -1,12 +1,13 @@
 #include "trig8.h"
 #include <limits.h>
 
-#define SEMITONE 1.059463
+#define SEMI 1.059463
 #define CENT 1.0005777895
 
 // CPU_F/prescaler/ADC_cycles
 // 160000000/128/13
-#define ADCFREQ 9615.384615384615
+// Adjust to tune the tuner
+#define ADCFREQ 9575.0
 // scales to the range of sin8: 0-255
 #define OMEGA (255/ADCFREQ)
 
@@ -20,14 +21,23 @@
 #define BUZZER 10
 #define ENVELOPE 9
 #define CLICKER 8
-#define BUTTON 3
+
+// PORTB
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+#define SCROLL_PHASE A8
+#define SCROLL_COUNTER A9
+#else
+#define SCROLL_PHASE 16
+#define SCROLL_COUNTER 17
+#endif
 
 volatile uint16_t buf[256];
 volatile unsigned long long counter = 0;
 
-const float strings[6] = {E2, A2, D3, G3, B3, E4};
-const char names[6][2] = {"E", "A", "D", "G", "B", "E"};
-int note_idx = 3;
+//const float strings[6] = {E2, A2, D3, G3, B3, E4};
+//const char names[6][2] = {"E", "A", "D", "G", "B", "E"};
+//int note_idx = 5;
+volatile float note = D3*CENT*CENT*CENT;
 
 void setup(){
   
@@ -36,7 +46,15 @@ void setup(){
   pinMode(BUZZER, OUTPUT);
   pinMode(ENVELOPE, OUTPUT);
   pinMode(CLICKER, OUTPUT);
-  pinMode(BUTTON, INPUT);
+
+    // rotary encoder
+  pinMode(SCROLL_PHASE, INPUT);
+  pinMode(SCROLL_COUNTER, INPUT);
+  //attachInterrupt(SCROLL_PHASE, read_encoder, CHANGE);
+  //attachInterrupt(SCROLL_COUNTER, read_encoder, CHANGE);
+
+  PCICR = (1 << PCIE2);  //Enable PCI2 interupt
+  PCMSK2 = (1 << PCINT16) | (1 << PCINT17);  // Mask for encoder pins
     
   //set up continuous sampling of analog pin 0 at 10kHz
  
@@ -66,8 +84,7 @@ SIGNAL(ADC_vect) {//when new ADC value ready
   //uint16_t val = ADCL;
   //val |= ADCH << 8;
   uint8_t val = ADCH;
-  float f = strings[note_idx];
-  uint8_t sine = sin8(f*counter);
+  uint8_t sine = sin8(note*counter);
   //int16_t prod = (val*sine)-0x7fff;
   //int16_t enve = IIR2(&lpf, prod);
   OCR2A = sine;
@@ -75,6 +92,33 @@ SIGNAL(ADC_vect) {//when new ADC value ready
   int idx = counter & 0xff;
   buf[idx] = val*sine;
   counter++;
+}
+
+//https://www.circuitsathome.com/mcu/reading-rotary-encoder-on-arduino/
+SIGNAL(PCINT2_vect) {
+  //const int8_t enc_states[] = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0};
+  // 00 00 -> --
+  // 00 01 -> CW
+  // 00 10 -> CCW
+  // 00 11 -> --
+  // 01 00 -> CCW
+  // 01 01 -> --
+  // 01 10 -> --
+  // 01 11 -> CW
+  // 10 00 -> CW
+  // 10 01 -> --
+  // 10 10 -> --
+  // 10 11 -> CCW
+  // 11 00 -> --
+  // 11 01 -> CCW
+  // 11 10 -> CW
+  // 11 11 -> --
+  const float enc_states[] = {1,1,1,1,1,1,1,1/SEMI,1,1,1,SEMI,1,1,1,1};
+  static uint8_t old_AB = 0;
+
+  old_AB <<= 2; //remember previous state
+  old_AB |= PINK & 0x03; //add current state
+  note *= enc_states[old_AB & 0x0f];
 }
 
 void loop() {
@@ -86,4 +130,6 @@ void loop() {
     }
     OCR2B = m>>8;
     digitalWrite(CLICKER, m>0x7fff);
+
+    //Serial.println(PINK, BIN);
 }
