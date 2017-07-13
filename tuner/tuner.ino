@@ -27,8 +27,8 @@
 #define SCROLL_PHASE A8
 #define SCROLL_COUNTER A9
 #else
-#define SCROLL_PHASE 16
-#define SCROLL_COUNTER 17
+#define SCROLL_PHASE 1
+#define SCROLL_COUNTER 0
 #endif
 
 volatile uint16_t buf[256];
@@ -41,15 +41,15 @@ volatile float note = D3;
 
 void setup(){
   
-  Serial.begin(9600);
+  //Serial.begin(9600);
   
   pinMode(BUZZER, OUTPUT);
   pinMode(ENVELOPE, OUTPUT);
   pinMode(CLICKER, OUTPUT);
 
     // rotary encoder
-  pinMode(SCROLL_PHASE, INPUT);
-  pinMode(SCROLL_COUNTER, INPUT);
+  pinMode(SCROLL_PHASE, INPUT_PULLUP);
+  pinMode(SCROLL_COUNTER, INPUT_PULLUP);
   //attachInterrupt(SCROLL_PHASE, read_encoder, CHANGE);
   //attachInterrupt(SCROLL_COUNTER, read_encoder, CHANGE);
 
