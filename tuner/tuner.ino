@@ -20,15 +20,15 @@
 
 #define BUZZER 3
 #define ENVELOPE 11
-#define CLICKER 8
+#define CLICKER 2
 
 // PORTB
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
 #define SCROLL_PHASE A8
 #define SCROLL_COUNTER A9
 #else
-#define SCROLL_PHASE 1
-#define SCROLL_COUNTER 0
+#define SCROLL_PHASE 6
+#define SCROLL_COUNTER 7
 #endif
 
 volatile uint16_t buf[256];
@@ -48,13 +48,13 @@ void setup(){
   pinMode(CLICKER, OUTPUT);
 
     // rotary encoder
-  pinMode(SCROLL_PHASE, INPUT_PULLUP);
-  pinMode(SCROLL_COUNTER, INPUT_PULLUP);
+  pinMode(SCROLL_PHASE, INPUT);
+  pinMode(SCROLL_COUNTER, INPUT);
   //attachInterrupt(SCROLL_PHASE, read_encoder, CHANGE);
   //attachInterrupt(SCROLL_COUNTER, read_encoder, CHANGE);
 
   PCICR = (1 << PCIE2);  //Enable PCI2 interupt
-  PCMSK2 = (1 << PCINT16) | (1 << PCINT17);  // Mask for encoder pins
+  PCMSK2 = (1 << PCINT22) | (1 << PCINT23);  // Mask for encoder pins
     
   //set up continuous sampling of analog pin 0 at 10kHz
  
@@ -117,7 +117,7 @@ SIGNAL(PCINT2_vect) {
   static uint8_t old_AB = 0;
 
   old_AB <<= 2; //remember previous state
-  old_AB |= PIND & 0x03; //add current state
+  old_AB |= (PIND >> 6) & 0x03; //add current state
   note *= enc_states[old_AB & 0x0f];
 }
 
