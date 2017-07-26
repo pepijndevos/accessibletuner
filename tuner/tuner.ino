@@ -78,6 +78,9 @@ void setup(){
   // Duty cycle
   OCR2A = 127;
   OCR2B = 127;
+
+  // SPI slave for debugging via USBTinyISP
+  SPCR = _BV(SPE) | _BV(SPIE);
 }
 
 SIGNAL(ADC_vect) {//when new ADC value ready
@@ -119,6 +122,10 @@ SIGNAL(PCINT2_vect) {
   old_AB <<= 2; //remember previous state
   old_AB |= (PIND >> 6) & 0x03; //add current state
   note *= enc_states[old_AB & 0x0f];
+}
+
+SIGNAL(SPI_STC_vect) {
+  SPDR = OCR2A;
 }
 
 void loop() {
