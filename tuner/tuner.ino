@@ -31,8 +31,15 @@
 #define SCROLL_COUNTER 7
 #endif
 
-volatile uint16_t buf[256];
+#define BUFSIZE (1<<8)
+#define BUFMASK (BUFSIZE-1)
+volatile uint16_t buf[BUFSIZE];
 volatile unsigned long long counter = 0;
+
+#define ENVSIZE (1<<8)
+#define ENVMASK (BUFSIZE-1)
+uint16_t env_buf[ENVSIZE];
+uint8_t env_counter = 0;
 
 //const float strings[6] = {E2, A2, D3, G3, B3, E4};
 //const char names[6][2] = {"E", "A", "D", "G", "B", "E"};
@@ -72,7 +79,7 @@ void setup(){
          |  (1 << ADSC); //start ADC measurements
 
   // Enable output A, B, fast PWM
-  TCCR2A = _BV(COM2A1) | _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
+  TCCR2A =  _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
   // No PWM prescaler
   TCCR2B = _BV(CS20);
   // Duty cycle
@@ -92,7 +99,7 @@ SIGNAL(ADC_vect) {//when new ADC value ready
   //int16_t enve = IIR2(&lpf, prod);
   OCR2B = sine;
   //digitalWrite(CLICKER, enve>0);
-  int idx = counter & 0xff;
+  int idx = counter & BUFMASK;
   buf[idx] = val*sine;
   counter++;
 }
@@ -130,13 +137,28 @@ SIGNAL(SPI_STC_vect) {
 
 void loop() {
     uint16_t m = 0;
-    for(int i=0; i<256; i++) {
+    for(int i=0; i<BUFSIZE; i++) {
       if (buf[i] > m) {
         m = buf[i];
       }
     }
-    OCR2A = m>>8;
-    digitalWrite(CLICKER, m>0x7fff);
+    //OCR2A = m>>8;
+    env_buf[env_counter & ENVMASK] = m;
+    env_counter++;
+    uint16_t env_min = 0xffff;
+    uint16_t env_max = 0;
+    for(int i=0; i<ENVSIZE; i++) {
+      if (env_buf[i] > env_max) {
+        env_max = env_buf[i];
+      }
+      if (env_buf[i] < env_min) {
+        env_min= env_buf[i];
+      }
+    }
 
+    if (env_max-env_min > 5000) {
+      uint16_t threshold = (env_min/2) + (env_max/2);
+      digitalWrite(CLICKER, m>threshold);
+    }
     //Serial.println(PINK, BIN);
 }
