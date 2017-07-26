@@ -54,6 +54,11 @@ void setup(){
   pinMode(ENVELOPE, OUTPUT);
   pinMode(CLICKER, OUTPUT);
 
+  pinMode(MISO, OUTPUT);
+  pinMode(MOSI, INPUT);
+  pinMode(SCK, INPUT);
+  pinMode(SS, INPUT);
+
     // rotary encoder
   pinMode(SCROLL_PHASE, INPUT);
   pinMode(SCROLL_COUNTER, INPUT);
