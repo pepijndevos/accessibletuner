@@ -370,81 +370,6 @@ Source: avr.lbr</description>
 </deviceset>
 </devicesets>
 </library>
-<library name="battery">
-<description>&lt;b&gt;Lithium Batteries and NC Accus&lt;/b&gt;&lt;p&gt;
-&lt;author&gt;Created by librarian@cadsoft.de&lt;/author&gt;</description>
-<packages>
-<package name="AB9V">
-<description>&lt;B&gt;9-V BATTERY CLIP&lt;/B&gt;</description>
-<wire x1="-2.54" y1="-3.175" x2="-2.54" y2="-1.905" width="0.254" layer="21"/>
-<wire x1="-2.54" y1="1.905" x2="-2.54" y2="3.175" width="0.254" layer="21"/>
-<wire x1="-1.905" y1="2.54" x2="-3.175" y2="2.54" width="0.254" layer="21"/>
-<wire x1="-2.54" y1="4.318" x2="-1.778" y2="5.08" width="0.1524" layer="21"/>
-<wire x1="-1.778" y1="5.08" x2="1.778" y2="5.08" width="0.1524" layer="21"/>
-<wire x1="2.54" y1="4.318" x2="1.778" y2="5.08" width="0.1524" layer="21"/>
-<wire x1="2.54" y1="4.318" x2="2.54" y2="-4.318" width="0.1524" layer="21"/>
-<wire x1="1.778" y1="-5.08" x2="2.54" y2="-4.318" width="0.1524" layer="21"/>
-<wire x1="1.778" y1="-5.08" x2="-1.778" y2="-5.08" width="0.1524" layer="21"/>
-<wire x1="-2.54" y1="-4.318" x2="-1.778" y2="-5.08" width="0.1524" layer="21"/>
-<circle x="0" y="2.54" radius="1.27" width="0.1524" layer="51"/>
-<circle x="0" y="-2.54" radius="1.27" width="0.1524" layer="51"/>
-<pad name="-" x="0" y="-2.54" drill="1.1176" diameter="3.1496" shape="octagon"/>
-<pad name="+" x="0" y="2.54" drill="1.1176" diameter="3.1496" shape="octagon"/>
-<text x="-1.905" y="-1.143" size="1.27" layer="21" ratio="16" rot="R90">9V</text>
-<text x="-3.81" y="-2.54" size="1.27" layer="25" ratio="10" rot="R90">&gt;NAME</text>
-<text x="4.445" y="-2.54" size="1.27" layer="27" ratio="10" rot="R90">&gt;VALUE</text>
-</package>
-</packages>
-<symbols>
-<symbol name="9V0-BL">
-<wire x1="-6.985" y1="0.635" x2="-6.985" y2="0" width="0.4064" layer="94"/>
-<wire x1="-8.89" y1="0" x2="-6.985" y2="0" width="0.1524" layer="94"/>
-<wire x1="-6.985" y1="0" x2="-6.985" y2="-0.635" width="0.4064" layer="94"/>
-<wire x1="-5.715" y1="2.54" x2="-5.715" y2="-2.54" width="0.4064" layer="94"/>
-<wire x1="-4.445" y1="0.635" x2="-4.445" y2="-0.635" width="0.4064" layer="94"/>
-<wire x1="6.985" y1="2.54" x2="6.985" y2="0" width="0.4064" layer="94"/>
-<wire x1="6.985" y1="0" x2="8.255" y2="0" width="0.1524" layer="94"/>
-<wire x1="6.985" y1="0" x2="6.985" y2="-2.54" width="0.4064" layer="94"/>
-<wire x1="-3.175" y1="2.54" x2="-3.175" y2="-2.54" width="0.4064" layer="94"/>
-<wire x1="-1.905" y1="0.635" x2="-1.905" y2="-0.635" width="0.4064" layer="94"/>
-<wire x1="-0.635" y1="2.54" x2="-0.635" y2="-2.54" width="0.4064" layer="94"/>
-<wire x1="0.635" y1="0.635" x2="0.635" y2="-0.635" width="0.4064" layer="94"/>
-<wire x1="1.905" y1="2.54" x2="1.905" y2="-2.54" width="0.4064" layer="94"/>
-<wire x1="3.175" y1="0.635" x2="3.175" y2="-0.635" width="0.4064" layer="94"/>
-<wire x1="4.445" y1="2.54" x2="4.445" y2="-2.54" width="0.4064" layer="94"/>
-<wire x1="5.715" y1="0.635" x2="5.715" y2="-0.635" width="0.4064" layer="94"/>
-<wire x1="9.525" y1="0.635" x2="9.525" y2="-0.635" width="0.254" layer="94" curve="-180" cap="flat"/>
-<wire x1="-9.525" y1="0.635" x2="-9.525" y2="-0.635" width="0.254" layer="94" curve="-180" cap="flat"/>
-<wire x1="8.255" y1="0" x2="8.89" y2="0" width="0.6096" layer="94"/>
-<wire x1="-10.16" y1="0" x2="-10.795" y2="0" width="0.6096" layer="94"/>
-<text x="-5.715" y="3.175" size="1.778" layer="95">&gt;NAME</text>
-<text x="-5.715" y="-5.08" size="1.778" layer="96">&gt;VALUE</text>
-<text x="7.62" y="0.635" size="1.524" layer="94">+</text>
-<text x="-8.255" y="0.635" size="1.524" layer="94">-</text>
-<pin name="+" x="12.7" y="0" visible="pad" length="short" direction="pas" rot="R180"/>
-<pin name="-" x="-12.7" y="0" visible="pad" length="short" direction="pas"/>
-</symbol>
-</symbols>
-<devicesets>
-<deviceset name="AB9V" prefix="G">
-<description>&lt;B&gt;9-V BATTERY CLIP&lt;/B&gt;</description>
-<gates>
-<gate name="G$1" symbol="9V0-BL" x="0" y="0"/>
-</gates>
-<devices>
-<device name="" package="AB9V">
-<connects>
-<connect gate="G$1" pin="+" pad="+"/>
-<connect gate="G$1" pin="-" pad="-"/>
-</connects>
-<technologies>
-<technology name=""/>
-</technologies>
-</device>
-</devices>
-</deviceset>
-</devicesets>
-</library>
 <library name="eagle-ltspice">
 <description>Default symbols for import LTspice schematics&lt;p&gt;
 2012-10-29 alf@cadsoft.de&lt;br&gt;</description>
@@ -17185,7 +17110,6 @@ Source: Fairchild .. BAT54.pdf</description>
 </classes>
 <parts>
 <part name="IC1" library="atmel" deviceset="MEGA8" device="-AI"/>
-<part name="G1" library="battery" deviceset="AB9V" device=""/>
 <part name="C1" library="eagle-ltspice" deviceset="C" device="" value="1uF"/>
 <part name="C2" library="eagle-ltspice" deviceset="C" device="" value="2.2uF"/>
 <part name="C3" library="eagle-ltspice" deviceset="C" device="" value="0.1uF"/>
@@ -17242,6 +17166,7 @@ Source: Fairchild .. BAT54.pdf</description>
 <part name="R6" library="resistor" deviceset="R-EU_" device="M0805" value="10k"/>
 <part name="C18" library="eagle-ltspice" deviceset="C" device="" value="0.01uF"/>
 <part name="R7" library="resistor" deviceset="R-EU_" device="M0805" value="10k"/>
+<part name="9V" library="pinhead" library_urn="urn:adsk.eagle:library:325" deviceset="PINHD-1X2" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -17249,7 +17174,6 @@ Source: Fairchild .. BAT54.pdf</description>
 </plain>
 <instances>
 <instance part="IC1" gate="G$1" x="27.94" y="58.42"/>
-<instance part="G1" gate="G$1" x="96.52" y="-12.7" rot="MR90"/>
 <instance part="C1" gate="G$1" x="114.3" y="0"/>
 <instance part="C2" gate="G$1" x="172.72" y="0"/>
 <instance part="C3" gate="G$1" x="-20.32" y="50.8"/>
@@ -17309,6 +17233,7 @@ Source: Fairchild .. BAT54.pdf</description>
 <instance part="R6" gate="G$1" x="-38.1" y="25.4" rot="R270"/>
 <instance part="C18" gate="G$1" x="27.94" y="2.54"/>
 <instance part="R7" gate="G$1" x="12.7" y="15.24"/>
+<instance part="9V" gate="G$1" x="93.98" y="-12.7"/>
 </instances>
 <busses>
 </busses>
@@ -17367,7 +17292,6 @@ Source: Fairchild .. BAT54.pdf</description>
 <junction x="109.22" y="60.96"/>
 </segment>
 <segment>
-<pinref part="G1" gate="G$1" pin="-"/>
 <wire x1="121.92" y1="-25.4" x2="114.3" y2="-25.4" width="0.1524" layer="91"/>
 <wire x1="114.3" y1="-25.4" x2="96.52" y2="-25.4" width="0.1524" layer="91"/>
 <wire x1="121.92" y1="-25.4" x2="127" y2="-25.4" width="0.1524" layer="91"/>
@@ -17385,6 +17309,9 @@ Source: Fairchild .. BAT54.pdf</description>
 <junction x="114.3" y="-25.4"/>
 <pinref part="C2" gate="G$1" pin="2"/>
 <wire x1="172.72" y1="-5.08" x2="172.72" y2="-25.4" width="0.1524" layer="91"/>
+<pinref part="9V" gate="G$1" pin="2"/>
+<wire x1="96.52" y1="-25.4" x2="96.52" y2="-12.7" width="0.1524" layer="91"/>
+<wire x1="96.52" y1="-12.7" x2="91.44" y2="-12.7" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="IN" gate="G$1" pin="1"/>
@@ -17607,9 +17534,10 @@ Source: Fairchild .. BAT54.pdf</description>
 <wire x1="121.92" y1="2.54" x2="121.92" y2="7.62" width="0.1524" layer="91"/>
 <junction x="121.92" y="7.62"/>
 <junction x="114.3" y="7.62"/>
-<pinref part="G1" gate="G$1" pin="+"/>
 <wire x1="96.52" y1="7.62" x2="114.3" y2="7.62" width="0.1524" layer="91"/>
-<wire x1="96.52" y1="0" x2="96.52" y2="7.62" width="0.1524" layer="91"/>
+<pinref part="9V" gate="G$1" pin="1"/>
+<wire x1="96.52" y1="7.62" x2="96.52" y2="-10.16" width="0.1524" layer="91"/>
+<wire x1="96.52" y1="-10.16" x2="91.44" y2="-10.16" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="R4" gate="G$1" pin="2"/>
@@ -17689,13 +17617,6 @@ Source: Fairchild .. BAT54.pdf</description>
 <wire x1="157.48" y1="43.18" x2="83.82" y2="43.18" width="0.1524" layer="91"/>
 <wire x1="83.82" y1="43.18" x2="83.82" y2="53.34" width="0.1524" layer="91"/>
 <wire x1="83.82" y1="53.34" x2="53.34" y2="53.34" width="0.1524" layer="91"/>
-</segment>
-</net>
-<net name="N$12" class="0">
-<segment>
-<pinref part="C13" gate="G$1" pin="2"/>
-<pinref part="IN" gate="G$1" pin="2"/>
-<wire x1="269.24" y1="83.82" x2="292.1" y2="83.82" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$21" class="0">
@@ -17976,6 +17897,13 @@ Source: Fairchild .. BAT54.pdf</description>
 <label x="55.88" y="48.26" size="1.778" layer="95"/>
 </segment>
 </net>
+<net name="N$12" class="0">
+<segment>
+<pinref part="C13" gate="G$1" pin="2"/>
+<pinref part="IN" gate="G$1" pin="2"/>
+<wire x1="269.24" y1="83.82" x2="292.1" y2="83.82" width="0.1524" layer="91"/>
+</segment>
+</net>
 </nets>
 </sheet>
 </sheets>
@@ -17984,8 +17912,14 @@ Source: Fairchild .. BAT54.pdf</description>
 <approved hash="104,1,5.08,45.72,IC1,VCC,5V,,,"/>
 <approved hash="104,1,5.08,73.66,IC1,AVCC,N$1,,,"/>
 <approved hash="104,1,129.54,7.62,U1,VIN,9V,,,"/>
-<approved hash="104,1,99.06,91.44,IC2P,V+,9V,,,"/>
-<approved hash="104,1,99.06,76.2,IC2P,V-,GND,,,"/>
+<approved hash="104,1,175.26,119.38,IC2P,V+,5V,,,"/>
+<approved hash="104,1,175.26,104.14,IC2P,V-,GND,,,"/>
+<approved hash="104,1,231.14,7.62,U2,VIN,9V,,,"/>
+<approved hash="113,1,-1.79917,63.5,Q1,,,,,"/>
+<approved hash="113,1,292.337,86.4912,IN,,,,,"/>
+<approved hash="113,1,292.337,50.9312,OUT,,,,,"/>
+<approved hash="113,1,63.7371,63.6312,UART,,,,,"/>
+<approved hash="113,1,91.6771,-10.0288,9V,,,,,"/>
 </errors>
 </schematic>
 </drawing>
