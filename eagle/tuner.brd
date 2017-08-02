@@ -64,8 +64,12 @@
 <wire x1="65.71" y1="80" x2="22.86" y2="80" width="0" layer="20"/>
 <wire x1="22.86" y1="80" x2="22.86" y2="26.67" width="0" layer="20"/>
 <wire x1="65.71" y1="26.67" x2="22.86" y2="26.67" width="0" layer="20"/>
-<text x="44.45" y="43.18" size="1.778" layer="22" rot="MR90">Wishful Coding
-Accessible Guitar Tuner</text>
+<text x="38.1" y="41.91" size="1.778" layer="22" rot="MR90">Pepijn de Vos
+Wishful Coding
+Accessible Guitar Tuner
+
+http://pepijndevos.nl
+pepijndevos@gmail.com</text>
 </plain>
 <libraries>
 <library name="eagle-ltspice">
