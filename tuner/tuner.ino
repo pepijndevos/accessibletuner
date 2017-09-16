@@ -19,8 +19,6 @@
 #define E2 (82.41*OMEGA)
 
 #define BUZZER 3
-#define ENVELOPE 11
-#define CLICKER 2
 
 // PORTB
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -36,34 +34,26 @@
 volatile uint16_t buf[BUFSIZE];
 volatile unsigned long long counter = 0;
 
-#define ENVSIZE (1<<8)
-#define ENVMASK (BUFSIZE-1)
+#define ENVSIZE (1<<7)
+#define ENVMASK (ENVSIZE-1)
 uint16_t env_buf[ENVSIZE];
 uint8_t env_counter = 0;
 
-//const float strings[6] = {E2, A2, D3, G3, B3, E4};
+const float strings[6] = {E2, A2, D3, G3, B3, E4};
 //const char names[6][2] = {"E", "A", "D", "G", "B", "E"};
-//int note_idx = 5;
-volatile float note = D3;
+int note_idx = 0;
+//volatile float note = D3;
+volatile uint8_t phase = 0;
 
 void setup(){
   
-  //Serial.begin(9600);
+  Serial.begin(115200);
   
   pinMode(BUZZER, OUTPUT);
-  pinMode(ENVELOPE, OUTPUT);
-  pinMode(CLICKER, OUTPUT);
-
-  pinMode(MISO, OUTPUT);
-  pinMode(MOSI, INPUT);
-  pinMode(SCK, INPUT);
-  pinMode(SS, INPUT);
 
     // rotary encoder
   pinMode(SCROLL_PHASE, INPUT);
   pinMode(SCROLL_COUNTER, INPUT);
-  //attachInterrupt(SCROLL_PHASE, read_encoder, CHANGE);
-  //attachInterrupt(SCROLL_COUNTER, read_encoder, CHANGE);
 
   PCICR = (1 << PCIE2);  //Enable PCI2 interupt
   PCMSK2 = (1 << PCINT22) | (1 << PCINT23);  // Mask for encoder pins
@@ -91,18 +81,17 @@ void setup(){
   OCR2A = 127;
   OCR2B = 127;
 
-  // SPI slave for debugging via USBTinyISP
-  SPCR = _BV(SPE) | _BV(SPIE);
 }
 
 SIGNAL(ADC_vect) {//when new ADC value ready
   //uint16_t val = ADCL;
   //val |= ADCH << 8;
   uint8_t val = ADCH;
+  float note = strings[(note_idx/4) % 6];
   uint8_t sine = sin8(note*counter);
   //int16_t prod = (val*sine)-0x7fff;
   //int16_t enve = IIR2(&lpf, prod);
-  OCR2B = sine;
+  OCR2B = sin8(note*counter+phase)/64;
   //digitalWrite(CLICKER, enve>0);
   int idx = counter & BUFMASK;
   buf[idx] = val*sine;
@@ -111,7 +100,7 @@ SIGNAL(ADC_vect) {//when new ADC value ready
 
 //https://www.circuitsathome.com/mcu/reading-rotary-encoder-on-arduino/
 SIGNAL(PCINT2_vect) {
-  //const int8_t enc_states[] = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0};
+  const int8_t enc_states[] = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0};
   // 00 00 -> --
   // 00 01 -> CW
   // 00 10 -> CCW
@@ -128,16 +117,13 @@ SIGNAL(PCINT2_vect) {
   // 11 01 -> CCW
   // 11 10 -> CW
   // 11 11 -> --
-  const float enc_states[] = {1,1,1,1,1,1,1,1/SEMI,1,1,1,SEMI,1,1,1,1};
+  //const float enc_states[] = {1,1,1,1,1,1,1,1/SEMI,1,1,1,SEMI,1,1,1,1};
   static uint8_t old_AB = 0;
 
   old_AB <<= 2; //remember previous state
   old_AB |= (PIND >> 6) & 0x03; //add current state
-  note *= enc_states[old_AB & 0x0f];
-}
-
-SIGNAL(SPI_STC_vect) {
-  SPDR = OCR2A;
+  //note_idx *= enc_states[old_AB & 0x0f];
+  note_idx += enc_states[old_AB & 0x0f];
 }
 
 void loop() {
@@ -161,9 +147,17 @@ void loop() {
       }
     }
 
+    uint16_t threshold = (env_min/2) + (env_max/2);
+
     if (env_max-env_min > 5000) {
-      uint16_t threshold = (env_min/2) + (env_max/2);
-      digitalWrite(CLICKER, m>threshold);
+      phase = (m>threshold)*128;
     }
-    //Serial.println(PINK, BIN);
+    //int idx = counter & BUFMASK;
+    Serial.print(m, DEC);
+    Serial.print("\t");
+    Serial.print(env_min, DEC);
+    Serial.print("\t");
+    Serial.print(env_max, DEC);
+    Serial.print("\t");
+    Serial.println(threshold, DEC);
 }
