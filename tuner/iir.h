@@ -71,7 +71,7 @@ acc += thisFilter->filterCoefficients[A1] * thisFilter->filterNodes[Y1];
 // shift the 16 most significant bits (high and middle byte) 3 times.
   
 // Update the Y1 node.
-thisFilter->filterNodes[Y1] = acc >> 16;
+thisFilter->filterNodes[Y1] = acc >> 11;
   
 // Return the value stored in the return registers R16 and R17, which happens
 // to be AC1 and AC2; the middle and high byte of accumulator.
