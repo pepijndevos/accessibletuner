@@ -1,6 +1,7 @@
 #include <SPI.h>
 
 #include "trig8.h"
+#include "iir.h"
 #include <limits.h>
 
 #define SEMI 1.059463
@@ -14,10 +15,10 @@
 #define OMEGA (256/ADCFREQ)
 
 #define E4 (329.63*OMEGA)
-#define B3 (246.94*OMEGA)
+#define B3_ (246.94*OMEGA)
 #define G3 (196.00*OMEGA)
 #define D3 (146.83*OMEGA)
-#define A2 (110.00*OMEGA)
+#define A2_ (110.00*OMEGA)
 #define E2 (82.41*OMEGA)
 
 #define BUZZER 9
@@ -35,19 +36,32 @@
 
 #define BUFSIZE (1<<6)
 #define BUFMASK (BUFSIZE-1)
-volatile uint16_t buf[BUFSIZE];
+volatile int16_t buf[BUFSIZE];
 volatile unsigned long long counter = 0;
 
 #define ENVSIZE (1<<8)
 #define ENVMASK (ENVSIZE-1)
-uint16_t env_buf[ENVSIZE];
+int16_t env_buf[ENVSIZE];
 uint8_t env_counter = 0;
 
-const float strings[6] = {E2, A2, D3, G3, B3, E4};
+volatile bool sample = 0;
+
+const float strings[6] = {E2, A2_, D3, G3, B3_, E4};
 //const char names[6][2] = {"E", "A", "D", "G", "B", "E"};
-int note_idx = 4;
+int note_idx = 0;
 //volatile float note = D3;
 volatile uint8_t phase = 0;
+
+IIR_filter filters[6] = {
+{0, 0, 0, 0, 153, 0, -153, 3658, -1742},
+{0, 0, 0, 0, 153, 0, -153, 3556, -1742},
+{0, 0, 0, 0, 153, 0, -153, 3375, -1742},
+{0, 0, 0, 0, 153, 0, -153, 3062, -1742},
+{0, 0, 0, 0, 153, 0, -153, 2656, -1742},
+{0, 0, 0, 0, 153, 0, -153, 1852, -1742}
+};
+
+IIR_filter lpf = {0, 0, 0, 0, 12, 24, 12, 3632, -1631};
 
 void setup(){
   Serial.begin(115200);
@@ -76,26 +90,11 @@ void setup(){
   TCCR1B = _BV(CS10) | _BV(WGM12);
   // Duty cycle
   OCR1A = 127;
-  digitalWrite(EN_OUT, HIGH);
-
+  digitalWrite(EN_OUT, LOW);
 }
 
 SIGNAL(TIMER0_COMPA_vect)  {//when new ADC value ready
-  SPI.beginTransaction(SPISettings(F_CPU/2, MSBFIRST, SPI_MODE0));
-  digitalWrite(A1, LOW);
-  delayMicroseconds(1);
-  uint16_t val = SPI.transfer16(0)<<4;
-  digitalWrite(A1, HIGH);
-  SPI.endTransaction();
-  
-  float note = strings[(note_idx/4) % 6];
-  uint16_t sine = sin16(note*256*counter)^(1<<15);
-  OCR1A = sin8(note*counter+phase);
-  //digitalWrite(CLICKER, enve>0);
-  int idx = counter & BUFMASK;
-  uint32_t prod = (uint32_t)(uint16_t)val*(uint32_t)(uint16_t)sine;
-  buf[idx] = prod>>16;
-  counter++;
+  sample = true;
 }
 
 //https://www.circuitsathome.com/mcu/reading-rotary-encoder-on-arduino/
@@ -127,39 +126,27 @@ SIGNAL(PCINT2_vect) {
 }
 
 void loop() {
-    uint16_t m = 0;
-    for(int i=0; i<BUFSIZE; i++) {
-      if (buf[i] > m) {
-        m = buf[i];
-      }
-    }
-    //OCR2A = m>>8;
-    env_buf[env_counter & ENVMASK] = m;
-    env_counter++;
-    uint16_t env_min = 0xffff;
-    uint16_t env_max = 0;
-    for(int i=0; i<ENVSIZE; i++) {
-      if (env_buf[i] > env_max) {
-        env_max = env_buf[i];
-      }
-      if (env_buf[i] < env_min) {
-        env_min= env_buf[i];
-      }
-    }
+  while(!sample);
+  sample = 0;
+  
+  SPI.beginTransaction(SPISettings(F_CPU/2, MSBFIRST, SPI_MODE0));
+  digitalWrite(A1, LOW);
+  delayMicroseconds(1);
+  int16_t val = SPI.transfer16(0)>>2; // TODO normalise
+  digitalWrite(A1, HIGH);
+  SPI.endTransaction();
+  
+  float note = strings[(note_idx/4) % 6];
+  
+  int16_t sine = sin16(note*256*counter)>>6;
+  OCR1A = sin8(note*counter+phase);
 
-    uint16_t threshold = (env_min/2) + (env_max/2);
+  IIR_filter* flt = &filters[note_idx % 6];
+  int16_t fval = IIR2(flt, val);
+  int16_t prod = ((int32_t)fval*(int32_t)sine)>>10;
+  int16_t lpval = IIR2(&lpf, prod);
 
-    if (env_max-env_min > 5000) {
-      phase = (m>threshold)*128;
-    }
-    int idx = counter & BUFMASK;
-    Serial.print(m, DEC);
-    Serial.print("\t");
-    Serial.print(buf[idx], DEC);
-    Serial.print("\t");
-    Serial.print(env_min, DEC);
-    Serial.print("\t");
-    Serial.print(env_max, DEC);
-    Serial.print("\t");
-    Serial.println(threshold, DEC);
+  Serial.println(lpval, DEC);
+
+  counter++;
 }
