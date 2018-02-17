@@ -15,10 +15,10 @@
 #define OMEGA (256/ADCFREQ)
 
 #define E4 (329.63*OMEGA)
-#define B3_ (246.94*OMEGA)
+#define B3 (246.94*OMEGA)
 #define G3 (196.00*OMEGA)
 #define D3 (146.83*OMEGA)
-#define A2_ (110.00*OMEGA)
+#define A2 (110.00*OMEGA)
 #define E2 (82.41*OMEGA)
 
 #define BUZZER 9
@@ -26,27 +26,13 @@
 #define ADC_CS A1
 
 // PORTB
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
-#define SCROLL_PHASE A8
-#define SCROLL_COUNTER A9
-#else
 #define SCROLL_PHASE 6
 #define SCROLL_COUNTER 7
-#endif
 
-#define BUFSIZE (1<<6)
-#define BUFMASK (BUFSIZE-1)
-volatile int16_t buf[BUFSIZE];
 volatile unsigned long long counter = 0;
-
-#define ENVSIZE (1<<8)
-#define ENVMASK (ENVSIZE-1)
-int16_t env_buf[ENVSIZE];
-uint8_t env_counter = 0;
-
 volatile bool sample = 0;
 
-const float strings[6] = {E2, A2_, D3, G3, B3_, E4};
+const float strings[6] = {E2, A2, D3, G3, B3, E4};
 //const char names[6][2] = {"E", "A", "D", "G", "B", "E"};
 int note_idx = 0;
 //volatile float note = D3;
@@ -127,13 +113,13 @@ SIGNAL(PCINT2_vect) {
 
 void loop() {
   while(!sample);
-  sample = 0;
+  sample = false;
   
   SPI.beginTransaction(SPISettings(F_CPU/2, MSBFIRST, SPI_MODE0));
-  digitalWrite(A1, LOW);
+  digitalWrite(ADC_CS, LOW);
   delayMicroseconds(1);
-  int16_t val = SPI.transfer16(0)>>2; // TODO normalise
-  digitalWrite(A1, HIGH);
+  int16_t val = (int16_t)SPI.transfer16(0) - (1<<11); // TODO normalise
+  digitalWrite(ADC_CS, HIGH);
   SPI.endTransaction();
   
   float note = strings[(note_idx/4) % 6];
@@ -146,7 +132,10 @@ void loop() {
   int16_t prod = ((int32_t)fval*(int32_t)sine)>>10;
   int16_t lpval = IIR2(&lpf, prod);
 
-  Serial.println(lpval, DEC);
+  Serial.print(val, DEC);
+  Serial.print("\t");
+  Serial.println(fval, DEC);
+
 
   counter++;
 }
