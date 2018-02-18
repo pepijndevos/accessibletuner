@@ -30,7 +30,7 @@
 #define SCROLL_COUNTER 7
 
 volatile unsigned long long counter = 0;
-volatile bool sample = 0;
+unsigned long interval = 0;
 
 const float strings[6] = {E2, A2, D3, G3, B3, E4};
 //const char names[6][2] = {"E", "A", "D", "G", "B", "E"};
@@ -62,13 +62,6 @@ void setup(){
 
   PCICR = (1 << PCIE2);  //Enable PCI2 interupt
   PCMSK2 = (1 << PCINT22) | (1 << PCINT23);  // Mask for encoder pins
-    
-  //set up continuous sampling of analog pin 0 at 10kHz
-  // Timer0 is already used for millis() this breaks everything
-  TCCR0A =  _BV(WGM01);
-  TCCR0B = _BV(CS01) | _BV(CS00);
-  OCR0A = 127;
-  TIMSK0 |= _BV(OCIE0A);
       
   // Enable output A, B, fast PWM
   TCCR1A =  _BV(COM1A1) | _BV(WGM10);
@@ -77,10 +70,6 @@ void setup(){
   // Duty cycle
   OCR1A = 127;
   digitalWrite(EN_OUT, LOW);
-}
-
-SIGNAL(TIMER0_COMPA_vect)  {//when new ADC value ready
-  sample = true;
 }
 
 //https://www.circuitsathome.com/mcu/reading-rotary-encoder-on-arduino/
@@ -112,8 +101,8 @@ SIGNAL(PCINT2_vect) {
 }
 
 void loop() {
-  while(!sample);
-  sample = false;
+  while(micros()-interval < 500);
+  interval = micros();
   
   SPI.beginTransaction(SPISettings(F_CPU/2, MSBFIRST, SPI_MODE0));
   digitalWrite(ADC_CS, LOW);
@@ -129,13 +118,14 @@ void loop() {
 
   IIR_filter* flt = &filters[note_idx % 6];
   int16_t fval = IIR2(flt, val);
-  int16_t prod = ((int32_t)fval*(int32_t)sine)>>10;
+  int16_t prod = ((int32_t)val*(int32_t)sine)>>5;
   int16_t lpval = IIR2(&lpf, prod);
 
-  Serial.print(val, DEC);
-  Serial.print("\t");
-  Serial.println(fval, DEC);
-
+//  Serial.print(val, DEC);
+//  Serial.print("\t");
+  Serial.println(lpval, DEC);
+//  Serial.print("\t");
+//  Serial.println(micros()-interval, DEC);
 
   counter++;
 }
