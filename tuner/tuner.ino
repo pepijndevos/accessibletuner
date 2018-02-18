@@ -114,16 +114,18 @@ void loop() {
   float note = strings[(note_idx/4) % 6];
   
   int16_t sine = sin16(note*256*counter)>>6;
-  OCR1A = sin8(note*counter+phase);
 
   IIR_filter* flt = &filters[(note_idx/4) % 6];
-  int16_t fval = IIR2(flt, sine);
+  int16_t fval = IIR2(flt, val);
   int16_t prod = ((int32_t)val*(int32_t)sine)>>5;
   int16_t lpval = IIR2(&lpf, prod);
 
-  Serial.print(sine, DEC);
-  Serial.print("\t");
-  Serial.println(fval, DEC);
+  int phase = (lpval>0)*128;
+  OCR1A = sin8(note*counter+phase);
+
+//  Serial.print(sine, DEC);
+//  Serial.print("\t");
+//  Serial.println(OCR1A, DEC);
 //  Serial.print("\t");
 //  Serial.println(micros()-interval, DEC);
 
