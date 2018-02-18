@@ -4,7 +4,7 @@ f = fliplr([329.63 246.94 196.00 146.83 110.00 82.41]);
 
 %% Low pass filter
 figure(1);
-[b,a] = butter(2,50*2/Fs);
+[b,a] = butter(2,20*2/Fs);
 as = round(a*2^11);
 bs = round(b*2^11);
 fprintf('{0, 0, 0, 0, %d, %d, %d, %d, %d},\n', bs(1), bs(2), bs(3), -as(2), -as(3))

@@ -35,8 +35,6 @@ unsigned long interval = 0;
 const float strings[6] = {E2, A2, D3, G3, B3, E4};
 //const char names[6][2] = {"E", "A", "D", "G", "B", "E"};
 int note_idx = 0;
-//volatile float note = D3;
-volatile uint8_t phase = 0;
 
 IIR_filter filters[6] = {
 {0, 0, 0, 0, 153, 0, -153, 3658, -1742},
@@ -47,7 +45,7 @@ IIR_filter filters[6] = {
 {0, 0, 0, 0, 153, 0, -153, 1852, -1742}
 };
 
-IIR_filter lpf = {0, 0, 0, 0, 12, 24, 12, 3632, -1631};
+IIR_filter lpf = {0, 0, 0, 0, 2, 4, 2, 3910, -1870};
 
 void setup(){
   Serial.begin(115200);
@@ -69,7 +67,7 @@ void setup(){
   TCCR1B = _BV(CS10) | _BV(WGM12);
   // Duty cycle
   OCR1A = 127;
-  digitalWrite(EN_OUT, LOW);
+  digitalWrite(EN_OUT, HIGH);
 }
 
 //https://www.circuitsathome.com/mcu/reading-rotary-encoder-on-arduino/
@@ -120,12 +118,12 @@ void loop() {
   int16_t prod = ((int32_t)val*(int32_t)sine)>>5;
   int16_t lpval = IIR2(&lpf, prod);
 
-  int phase = (lpval>0)*128;
+  int phase = 0;//(lpval>0)*128;
   OCR1A = sin8(note*counter+phase);
 
 //  Serial.print(sine, DEC);
 //  Serial.print("\t");
-//  Serial.println(OCR1A, DEC);
+  Serial.println(OCR1A, DEC);
 //  Serial.print("\t");
 //  Serial.println(micros()-interval, DEC);
 
