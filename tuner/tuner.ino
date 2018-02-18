@@ -7,10 +7,8 @@
 #define SEMI 1.059463
 #define CENT 1.0005777895
 
-// CPU_F/prescaler/ADC_cycles
-// 160000000/128/13
 // Adjust to tune the tuner
-#define ADCFREQ 1953.128
+#define ADCFREQ 1982.0
 // scales to the range of sin8: 0-255
 #define OMEGA (256/ADCFREQ)
 
@@ -31,6 +29,7 @@
 
 volatile unsigned long long counter = 0;
 unsigned long interval = 0;
+int phase = 0;
 
 const float strings[6] = {E2, A2, D3, G3, B3, E4};
 //const char names[6][2] = {"E", "A", "D", "G", "B", "E"};
@@ -101,16 +100,18 @@ SIGNAL(PCINT2_vect) {
 void loop() {
   while(micros()-interval < 500);
   interval = micros();
-  
+
+  // Do this first to reduce jitter
+  float note = strings[(note_idx/4) % 6];
+  OCR1A = sin8(note*counter+phase);
+
   SPI.beginTransaction(SPISettings(F_CPU/2, MSBFIRST, SPI_MODE0));
   digitalWrite(ADC_CS, LOW);
   delayMicroseconds(1);
   int16_t val = (int16_t)SPI.transfer16(0) - (1<<11); // TODO normalise
   digitalWrite(ADC_CS, HIGH);
   SPI.endTransaction();
-  
-  float note = strings[(note_idx/4) % 6];
-  
+    
   int16_t sine = sin16(note*256*counter)>>6;
 
   IIR_filter* flt = &filters[(note_idx/4) % 6];
@@ -118,12 +119,11 @@ void loop() {
   int16_t prod = ((int32_t)val*(int32_t)sine)>>5;
   int16_t lpval = IIR2(&lpf, prod);
 
-  int phase = 0;//(lpval>0)*128;
-  OCR1A = sin8(note*counter+phase);
+  phase = (lpval>0)*128;
 
 //  Serial.print(sine, DEC);
 //  Serial.print("\t");
-  Serial.println(OCR1A, DEC);
+//  Serial.println(fval, DEC);
 //  Serial.print("\t");
 //  Serial.println(micros()-interval, DEC);
 
