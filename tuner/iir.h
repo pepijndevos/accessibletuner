@@ -14,28 +14,29 @@ struct IIR_filter{
      };
 
 int32_t mul_mov_24(int16_t coef, int16_t data) {
-  int32_t ac = 0;
-  asm (
-  "muls  %B[COEF], %B[DATA] \n\t"
-  "mov   %C[AC],   r0 \n\t"
-
-  "mul  %A[COEF], %A[DATA] \n\t"
-  "mov  %A[AC],   r0 \n\t"
-  "mov  %B[AC],   r1 \n\t"
-
-  "mulsu  %B[COEF], %A[DATA] \n\t"
-  "add    %B[AC],   r0 \n\t"
-  "adc    %C[AC],   r1 \n\t"
-
-  "mulsu  %B[DATA], %A[COEF] \n\t"
-  "add    %B[AC],   r0 \n\t"
-  "adc    %C[AC],   r1 \n\t"
-  : [AC] "=r" (ac)
-  : [COEF] "a" (coef),
-    [DATA] "a" (data)
-  : "r0", "r1");
-
-  return ac;
+//  int32_t ac = 0;
+//  asm (
+//  "muls  %B[COEF], %B[DATA] \n\t"
+//  "mov   %C[AC],   r0 \n\t"
+//
+//  "mul  %A[COEF], %A[DATA] \n\t"
+//  "mov  %A[AC],   r0 \n\t"
+//  "mov  %B[AC],   r1 \n\t"
+//
+//  "mulsu  %B[COEF], %A[DATA] \n\t"
+//  "add    %B[AC],   r0 \n\t"
+//  "adc    %C[AC],   r1 \n\t"
+//
+//  "mulsu  %B[DATA], %A[COEF] \n\t"
+//  "add    %B[AC],   r0 \n\t"
+//  "adc    %C[AC],   r1 \n\t"
+//  : [AC] "=r" (ac)
+//  : [COEF] "a" (coef),
+//    [DATA] "a" (data)
+//  : "r0", "r1");
+//
+//  return ac;
+  return (int32_t)coef*(int32_t)data;
 }
 
 void smac_24(int32_t *ac, int16_t coef, int16_t data) {
@@ -71,56 +72,56 @@ int16_t IIR2( struct IIR_filter *thisFilter, int16_t newSample ) {
 //  LOAD_COEF B2
 //  LOAD_NODE X2
 //  MUL_MOV_24
-acc = mul_mov_24(thisFilter->filterCoefficients[2], thisFilter->filterNodes[2]);
+acc = mul_mov_24(thisFilter->filterCoefficients[2], thisFilter->filterNodes[1]);
 
 // Calculate B1*x[n-1]
 //  LOAD_COEF   B1
 //  LOAD_NODE   X1
 //  UPDATE_NODE X2
 //  SMAC_24
-thisFilter->filterNodes[2] = thisFilter->filterNodes[1];
-smac_24(&acc, thisFilter->filterCoefficients[1], thisFilter->filterNodes[1]);
+thisFilter->filterNodes[1] = thisFilter->filterNodes[0];
+smac_24(&acc, thisFilter->filterCoefficients[1], thisFilter->filterNodes[0]);
   
 // Calculate B0*x[n]
 //  LOAD_COEF    B0
 //  movw  DATAL, NDATAL  // For this coefficient, the new sample is used.
 //  UPDATE_NODE  X1
 //  SMAC_24
-thisFilter->filterNodes[1] = newSample;
+thisFilter->filterNodes[0] = newSample;
 smac_24(&acc, thisFilter->filterCoefficients[0], newSample);
 
 // Calculate A2*y[n-2]
 //  LOAD_COEF A2
 //  LOAD_NODE Y2
 //  SMAC_24
-smac_24(&acc, thisFilter->filterCoefficients[2], thisFilter->filterNodes[2]);
+smac_24(&acc, thisFilter->filterCoefficients[4], thisFilter->filterNodes[3]);
   
 // Calculate A1*y[n-1]
 //  LOAD_COEF   A1
 //  LOAD_NODE   Y1
 //  UPDATE_NODE Y2
 //  SMAC_24
-thisFilter->filterNodes[2] = thisFilter->filterNodes[1];
-smac_24(&acc, thisFilter->filterCoefficients[1], thisFilter->filterNodes[1]);
+thisFilter->filterNodes[3] = thisFilter->filterNodes[2];
+smac_24(&acc, thisFilter->filterCoefficients[3], thisFilter->filterNodes[2]);
 
 // Due to the coefficient scaling by a factor 2^11, the output requires
 // downscaling. Instead of right-shifting the 24-bit result 11 times, simply
 // shift the 16 most significant bits (high and middle byte) 3 times.
 
-asm volatile (
-"asr  %C[AC] \n\t"
-"ror  %B[AC] \n\t"
-"asr  %C[AC] \n\t"
-"ror  %B[AC] \n\t"
-"asr  %C[AC] \n\t"
-"ror  %B[AC] \n\t"
-: "=r" (acc)
-: [AC] "0" (acc));
+//asm volatile (
+//"asr  %C[AC] \n\t"
+//"ror  %B[AC] \n\t"
+//"asr  %C[AC] \n\t"
+//"ror  %B[AC] \n\t"
+//"asr  %C[AC] \n\t"
+//"ror  %B[AC] \n\t"
+//: "=r" (acc)
+//: [AC] "0" (acc));
 
-thisFilter->filterNodes[1] = (uint32_t)acc>>8;
+thisFilter->filterNodes[2] = acc>>11;
 
 // Return the value stored in the return registers R16 and R17, which happens
 // to be AC1 and AC2; the middle and high byte of accumulator.
- return thisFilter->filterNodes[1];
+ return thisFilter->filterNodes[2];
 }
 
