@@ -12,12 +12,12 @@
 // scales to the range of sin8: 0-255
 #define OMEGA (256/ADCFREQ)
 
-#define E4 (329.63*OMEGA)
-#define B3 (246.94*OMEGA)
-#define G3 (196.00*OMEGA)
-#define D3 (146.83*OMEGA)
-#define A2 (110.00*OMEGA)
-#define E2 (82.41*OMEGA)
+#define E4 329.63
+#define B3 246.94
+#define G3 196.00
+#define D3 146.83
+#define A2 110.00
+#define E2 82.41
 
 #define BUZZER 9
 #define EN_OUT 3
@@ -28,26 +28,18 @@
 #define SCROLL_COUNTER 7
 
 volatile unsigned long long counter = 0;
-unsigned long interval = 0;
+unsigned long sample_interval = 0;
+unsigned long click_interval = 0;
 int phase = 0;
 
 const float strings[6] = {E2, A2, D3, G3, B3, E4};
-//const char names[6][2] = {"E", "A", "D", "G", "B", "E"};
 int note_idx = 0;
-
-IIR_filter filters[6] = {
-{0, 0, 0, 0, 153, 0, -153, 3658, -1742},
-{0, 0, 0, 0, 153, 0, -153, 3556, -1742},
-{0, 0, 0, 0, 153, 0, -153, 3375, -1742},
-{0, 0, 0, 0, 153, 0, -153, 3062, -1742},
-{0, 0, 0, 0, 153, 0, -153, 2656, -1742},
-{0, 0, 0, 0, 153, 0, -153, 1852, -1742}
-};
-
+float note = strings[0]*OMEGA;
+IIR_filter bpf = iirpeak(strings[0]*2/ADCFREQ, 10*2/ADCFREQ);
 IIR_filter lpf = {0, 0, 0, 0, 2, 4, 2, 3910, -1870};
 
 void setup(){
-  Serial.begin(115200);
+  Serial.begin(250000);
   SPI.begin();
   
   pinMode(ADC_CS, OUTPUT);
@@ -95,31 +87,35 @@ SIGNAL(PCINT2_vect) {
   old_AB |= (PIND >> 6) & 0x03; //add current state
   //note_idx *= enc_states[old_AB & 0x0f];
   note_idx += enc_states[old_AB & 0x0f];
+
+  note = strings[(note_idx/4) % 6]*OMEGA;
+  IIR_filter bpf = iirpeak(strings[(note_idx/4) % 6]*2/ADCFREQ, 10*2/ADCFREQ);
 }
 
 void loop() {
-  while(micros()-interval < 500);
-  interval = micros();
+  while(micros()-sample_interval < 500);
+  sample_interval = micros();
 
   // Do this first to reduce jitter
-  float note = strings[(note_idx/4) % 6];
   OCR1A = sin8(note*counter+phase);
 
   SPI.beginTransaction(SPISettings(F_CPU/2, MSBFIRST, SPI_MODE0));
   digitalWrite(ADC_CS, LOW);
   delayMicroseconds(1);
-  int16_t val = (int16_t)SPI.transfer16(0) - (1<<11); // TODO normalise
+  int16_t val = (int16_t)SPI.transfer16(0) - (1<<11);
   digitalWrite(ADC_CS, HIGH);
   SPI.endTransaction();
     
   int16_t sine = sin16(note*256*counter)>>6;
 
-  IIR_filter* flt = &filters[(note_idx/4) % 6];
-  int16_t fval = IIR2(flt, val);
+  int16_t fval = IIR2(&bpf, val);
   int16_t prod = ((int32_t)val*(int32_t)sine)>>5;
   int16_t lpval = IIR2(&lpf, prod);
-
-  phase = (lpval>0)*128;
+  // timeout on clicker for anti-madness
+  if(millis()-click_interval > 20) {
+    click_interval = millis();
+    phase = (lpval>0)*128;
+  }
 
 //  Serial.print(sine, DEC);
 //  Serial.print("\t");

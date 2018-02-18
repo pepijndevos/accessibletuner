@@ -1,7 +1,9 @@
 #include <stdint.h>
+#include <math.h>
 
 //! Define the filter order for the IIR_filter struct.
 #define FILTER_ORDER 2
+#define SCALE 2048
 
 /**********************************************************/
 // Struct declarations
@@ -13,55 +15,11 @@ struct IIR_filter{
      int16_t filterCoefficients[(FILTER_ORDER*2)+1];  //!< Filter coefficients.
      };
 
-int32_t mul_mov_24(int16_t coef, int16_t data) {
-//  int32_t ac = 0;
-//  asm (
-//  "muls  %B[COEF], %B[DATA] \n\t"
-//  "mov   %C[AC],   r0 \n\t"
-//
-//  "mul  %A[COEF], %A[DATA] \n\t"
-//  "mov  %A[AC],   r0 \n\t"
-//  "mov  %B[AC],   r1 \n\t"
-//
-//  "mulsu  %B[COEF], %A[DATA] \n\t"
-//  "add    %B[AC],   r0 \n\t"
-//  "adc    %C[AC],   r1 \n\t"
-//
-//  "mulsu  %B[DATA], %A[COEF] \n\t"
-//  "add    %B[AC],   r0 \n\t"
-//  "adc    %C[AC],   r1 \n\t"
-//  : [AC] "=r" (ac)
-//  : [COEF] "a" (coef),
-//    [DATA] "a" (data)
-//  : "r0", "r1");
-//
-//  return ac;
+int32_t inline mul_mov_24(int16_t coef, int16_t data) {
   return (int32_t)coef*(int32_t)data;
 }
 
-void smac_24(int32_t *ac, int16_t coef, int16_t data) {
-//  asm (
-//  "clr r2 \n\t"
-//  "muls  %B[COEF], %B[DATA] \n\t"
-//  "add   %C[AC],   r0 \n\t"
-//
-//  "mul  %A[COEF], %A[DATA] \n\t"
-//  "add  %A[AC],   r0 \n\t"
-//  "add  %B[AC],   r1 \n\t"
-//  "adc  %C[AC],   r2 \n\t"
-//
-//  "mulsu  %B[COEF], %A[DATA] \n\t"
-//  "add    %B[AC],   r0 \n\t"
-//  "adc    %C[AC],   r1 \n\t"
-//
-//  "mulsu  %B[DATA], %A[COEF] \n\t"
-//  "add    %B[AC],   r0 \n\t"
-//  "adc    %C[AC],   r1 \n\t"
-//  : "=r" (*ac)
-//  : [COEF] "a" (coef),
-//    [DATA] "a" (data),
-//    [AC] "0" (*ac)
-//  : "r0", "r1", "r2");
+void inline smac_24(int32_t *ac, int16_t coef, int16_t data) {
   *ac += (int32_t)coef*(int32_t)data;
 }
 
@@ -108,20 +66,30 @@ smac_24(&acc, thisFilter->filterCoefficients[3], thisFilter->filterNodes[2]);
 // downscaling. Instead of right-shifting the 24-bit result 11 times, simply
 // shift the 16 most significant bits (high and middle byte) 3 times.
 
-//asm volatile (
-//"asr  %C[AC] \n\t"
-//"ror  %B[AC] \n\t"
-//"asr  %C[AC] \n\t"
-//"ror  %B[AC] \n\t"
-//"asr  %C[AC] \n\t"
-//"ror  %B[AC] \n\t"
-//: "=r" (acc)
-//: [AC] "0" (acc));
-
 thisFilter->filterNodes[2] = acc>>11;
 
-// Return the value stored in the return registers R16 and R17, which happens
-// to be AC1 and AC2; the middle and high byte of accumulator.
  return thisFilter->filterNodes[2];
+}
+
+struct IIR_filter iirpeak(float w0, float bw) {
+  // bandwidth
+  //float bw = w0/Q;
+  // normalise
+  bw *= M_PI;
+  w0 *= M_PI;
+  // -3 dB atenuation
+  float gb = 1/sqrt(2);
+  float beta = (gb/sqrt(1.0-pow(gb, 2.0)))*tan(bw/2.0);
+  float gain = 1.0/(1.0+beta);
+
+  float b1 = (1.0-gain);
+  float b2 = 0; // optimisation??
+  float b3 = -(1.0-gain);
+  float a2 = -2*gain*cos(w0);
+  float a3 = 2*gain-1;
+
+  return {0, 0, 0, 0,
+          round(b1*SCALE), round(b2*SCALE), round(b3*SCALE),
+           round(-a2*SCALE), round(-a3*SCALE)};
 }
 
