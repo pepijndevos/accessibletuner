@@ -93,7 +93,7 @@ SIGNAL(PCINT2_vect) {
 }
 
 void loop() {
-  while(micros()-sample_interval < 500);
+  while(micros()-sample_interval < 500 || micros() < sample_interval);
   sample_interval = micros();
 
   // Do this first to reduce jitter
@@ -106,10 +106,10 @@ void loop() {
   digitalWrite(ADC_CS, HIGH);
   SPI.endTransaction();
     
-  int16_t sine = sin16(note*256*counter)>>6;
+  int16_t sine = (int16_t)sin8(note*counter)-(int16_t)127;
 
   int16_t fval = IIR2(&bpf, val);
-  int16_t prod = ((int32_t)val*(int32_t)sine)>>5;
+  int16_t prod = fval*sine;
   int16_t lpval = IIR2(&lpf, prod);
   // timeout on clicker for anti-madness
   if(millis()-click_interval > 20) {
@@ -119,9 +119,11 @@ void loop() {
 
 //  Serial.print(sine, DEC);
 //  Serial.print("\t");
-//  Serial.println(fval, DEC);
+//  Serial.print(fval, DEC);
 //  Serial.print("\t");
-//  Serial.println(micros()-interval, DEC);
+//  Serial.println(lpval, DEC);
+//  Serial.print("\t");
+//  Serial.println(micros()-sample_interval, DEC);
 
   counter++;
 }
