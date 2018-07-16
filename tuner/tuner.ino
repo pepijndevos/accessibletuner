@@ -88,7 +88,7 @@ SIGNAL(PCINT2_vect) {
   //note_idx *= enc_states[old_AB & 0x0f];
   note_idx += enc_states[old_AB & 0x0f];
 
-  note = strings[(note_idx/4) % 6]*OMEGA;
+  note = strings[(((note_idx/4) % 6) + 6) % 6]*OMEGA;
   IIR_filter bpf = iirpeak(strings[(note_idx/4) % 6]*2/ADCFREQ, 10*2/ADCFREQ);
 }
 
@@ -117,13 +117,15 @@ void loop() {
     phase = (lpval>0)*128;
   }
 
-//  Serial.print(sine, DEC);
+if(counter % 64 == 0) {
+  Serial.print(fval, DEC);
+  Serial.print("\t");
+//  Serial.print(note_idx, DEC);
 //  Serial.print("\t");
-//  Serial.print(fval, DEC);
-//  Serial.print("\t");
-//  Serial.println(lpval, DEC);
+  Serial.println(lpval, DEC);
 //  Serial.print("\t");
 //  Serial.println(micros()-sample_interval, DEC);
+}
 
   counter++;
 }
