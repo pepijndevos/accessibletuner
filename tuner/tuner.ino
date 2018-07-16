@@ -24,6 +24,7 @@
 #define ADC_CS A1
 
 // PORTB
+#define SCROLL_MODE 5
 #define SCROLL_PHASE 6
 #define SCROLL_COUNTER 7
 
@@ -34,6 +35,7 @@ int phase = 0;
 
 const float strings[6] = {E2, A2, D3, G3, B3, E4};
 int note_idx = 0;
+bool standard_tuning = true;
 float note = strings[0]*OMEGA;
 IIR_filter bpf = iirpeak(strings[0]*2/ADCFREQ, 10*2/ADCFREQ);
 IIR_filter lpf = {0, 0, 0, 0, 2, 4, 2, 3910, -1870};
@@ -46,11 +48,12 @@ void setup(){
   pinMode(BUZZER, OUTPUT);
   pinMode(EN_OUT, OUTPUT);
     // rotary encoder
+  pinMode(SCROLL_MODE, INPUT);
   pinMode(SCROLL_PHASE, INPUT);
   pinMode(SCROLL_COUNTER, INPUT);
 
   PCICR = (1 << PCIE2);  //Enable PCI2 interupt
-  PCMSK2 = (1 << PCINT22) | (1 << PCINT23);  // Mask for encoder pins
+  PCMSK2 = (1 << PCINT21) | (1 << PCINT22) | (1 << PCINT23);  // Mask for encoder pins
       
   // Enable output A, B, fast PWM
   TCCR1A =  _BV(COM1A1) | _BV(WGM10);
@@ -88,8 +91,20 @@ SIGNAL(PCINT2_vect) {
   //note_idx *= enc_states[old_AB & 0x0f];
   note_idx += enc_states[old_AB & 0x0f];
 
-  note = strings[(((note_idx/4) % 6) + 6) % 6]*OMEGA;
-  IIR_filter bpf = iirpeak(strings[(note_idx/4) % 6]*2/ADCFREQ, 10*2/ADCFREQ);
+  if(((PIND >> 5) & 0x01)==0) {
+    standard_tuning = !standard_tuning;
+    note_idx = 0;
+  }
+
+  float string_freq;
+  if(standard_tuning) {
+    string_freq = strings[(((note_idx/4) % 6) + 6) % 6];
+  } else {
+    string_freq = strings[0]*pow(SEMI, note_idx);
+  }
+  
+  note = string_freq*OMEGA;
+  IIR_filter bpf = iirpeak(string_freq*2/ADCFREQ, 10*2/ADCFREQ);
 }
 
 void loop() {
@@ -117,15 +132,15 @@ void loop() {
     phase = (lpval>0)*128;
   }
 
-if(counter % 64 == 0) {
-  Serial.print(fval, DEC);
-  Serial.print("\t");
+//if(counter % 64 == 0) {
+//  Serial.print(((PIND >> 5) & 0x01)==0);
+//  Serial.print("\t");
 //  Serial.print(note_idx, DEC);
 //  Serial.print("\t");
-  Serial.println(lpval, DEC);
+//  Serial.println(standard_tuning, DEC);
 //  Serial.print("\t");
 //  Serial.println(micros()-sample_interval, DEC);
-}
+//}
 
   counter++;
 }
